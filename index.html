@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Test Quantus</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+</head>
+<body>
+
+    <div class="container my-5" id="app">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="nama">Nama</label>
+                            <input type="text" id="nama" class="form-control" v-model="inputProduct.nama" placeholder="Nama" autofocus required>
+                        </div>
+                        <div class="form-group">
+                            <label for="jumlah">Jumlah</label>
+                            <input type="number" id="jumlah" class="form-control" v-model="inputProduct.jumlah" placeholder="Jumlah" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="harga">Harga</label>
+                            <input type="number" id="harga" class="form-control" v-model="inputProduct.harga" placeholder="Harga" required>
+                        </div>
+                        <button class="btn btn-primary" @click="addProduct(inputProduct)">Tambah</button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered ">
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Nama Barang</th>
+                                <th>Harga</th>
+                                <th>Jumlah</th>
+                                <th>Total</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(product, index) in products">
+                                <td>{{ index + 1 }}</td>
+                                <td>{{ product.nama | capitalize }}</td>
+                                <td>Rp{{ product.harga | currency}}</td>
+                                <td>{{ product.jumlah }}</td>
+                                <td>Rp{{ product.jumlah * product.harga | currency}}</td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-danger" @click="removeProduct(product)">Hapus</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="4">Total</td>
+                                <td colspan="2">Rp{{ totalPrice | currency}}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="4">Paling Banyak</td>
+                                <td colspan="2">{{ mostProduct | capitalize }}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="4">Paling Mahal</td>
+                                <td colspan="2">{{ highPrice | capitalize  }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>                
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+    <script>
+        var app = new Vue({
+            el: '#app',
+            data: {
+                message: 'Hello Vue!',
+                products: [],
+                inputProduct: {}
+            },
+            created : function(){
+                var that = this;
+
+                // Get Products
+                $.getJSON('https://api.myjson.com/bins/14mmlw', function (data) {
+                    that.products = data;
+                });
+            },
+            computed: {
+                // Get Total Price Product
+                totalPrice: function () {
+                    var that = this;
+                    var total = 0;
+                    that.products.forEach(function (item) {
+                        total += item.harga * item.jumlah;
+                    });
+                    return total;
+                },
+                // Get Most Product
+                mostProduct: function () {
+                    var that = this;
+                    if (that.products.length == 0) return 
+                    var most = that.products.reduce((a,b) => Number(a.jumlah) > Number(b.jumlah) ? a : b)
+                    return most.nama;
+                },
+                // Get High Price
+                highPrice: function () {
+                    var that = this;
+                    if (that.products.length == 0) return 
+                    var highPrice = that.products.reduce((a,b) => Number(a.harga) > Number(b.harga) ? a : b)
+                    return highPrice.nama;
+                }
+            },
+            methods: {
+                // Function make Random String
+                randomString: function(value) {
+                    let text = " ";
+                    let chars = "abcdefghijklmnopqrstuvwxyz";
+                    
+                    for(let i=0; i < value; i++) {
+                        text += chars.charAt(Math.floor(Math.random() * chars.length));
+                    }
+                    return text;
+                },
+                // Function add value input to array product
+                addProduct: function(product) {
+                    var that = this;
+                    that.products.push({
+                        'id': that.randomString(),
+                        'nama': product.nama,
+                        'jumlah': product.jumlah,
+                        'harga': product.harga
+                    });
+                },
+                // Function remove product from array
+                removeProduct: function (product) {
+                    var that = this;
+                    var result = confirm('Anda ingin menghapus produk ini ?');
+                    if (result) {
+                        var index = that.products.indexOf(product);
+
+                        if (index !== -1) {
+                            that.products.splice(index, 1);
+                        }
+                    }                    
+                }
+            },
+            filters: {
+                // Filter for string
+                capitalize: function (value) {
+                    if (!value) return ''
+                    value = value.toString()
+                    return value.charAt(0).toUpperCase() + value.slice(1)
+                },
+                // Filter for price
+                currency: function (value) {
+                    if (typeof value !== "number") {
+                        return value;
+                    }        
+                    //let val = (value/1).toFixed(2).replace('.', ',')
+                    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".")
+                }
+            }
+        })
+    </script>
+</body>
+</html>
